@@ -14,7 +14,8 @@ def create_maze_xml(maze_matrix, maze_size, wall_size):
             <material name="MatPlane" reflectance="0" texture="texplane" texrepeat="1 1" texuniform="true"/>~
         </asset>    
         <worldbody>
-        <geom conaffinity="0" name="Goal" type="box" pos="0 0 0.10" size="0.5 0.5 1.5" rgba="0.8 0.0 0.0 1"/>
+        <camera name="top_view" mode="trackcom" pos="20 20 30" xyaxes="1 0 0 0 1 0" fovy = "45"/>
+        <geom conaffinity="0" name="Goal" type="box" pos="0 30 0.10" size="0.5 0.5 1.5" rgba="0.8 0.0 0.0 1"/>
         <geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="100 100 40" type="plane"/>
         <light cutoff="100" diffuse="1 1 1" dir="-0 0 -1.3" directional="true" exponent="1" pos="0 0 1.3" specular=".1 .1 .1"/>
 
@@ -27,11 +28,11 @@ def create_maze_xml(maze_matrix, maze_size, wall_size):
         for j in range(row_size):
             if maze_matrix[i][j] == 1:  # 1인 경우 벽을 생성합니다.
 
-                pos_x =  -maze_size + maze_size * i
-                pos_y =  -maze_size + maze_size * j
+                pos_x =  -2*maze_size + maze_size * i
+                pos_y =  -2*maze_size + maze_size * j
 
                 xml_str += f'''
-                <geom conaffinity="1" type="box" name="wall_{i}_{j}" size="{maze_size/2} {maze_size/2} {wall_size}" pos="{pos_x} {pos_y} {wall_size/2}" rgba="0.8 0.8 0.2 1" />
+                <geom conaffinity="1" type="box" name="wall_{i}_{j}" size="{maze_size/2} {maze_size/2} {wall_size}" pos="{pos_x} {pos_y} {wall_size/2}" rgba="0.2 0.2 0.2 1" />
                 '''
 
     xml_str += '''
@@ -40,20 +41,24 @@ def create_maze_xml(maze_matrix, maze_size, wall_size):
     '''
     return xml_str
 
+# 행렬 상에서의 (3,3) -> Mujoco (0,0)
+# 행렬 상에서의 (7,7) -> Mujoco (20,20)
+# 행렬 상에서의 (i,j) -> Mujoco (5j-15, 5i-15)
+
 # 미로 매트릭스
-maze_matrix = np.array([
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1 ,0, 1, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0 ,0, 0, 1],
-    [1, 0, 0, 0, 1, 0, 1, 0 ,1, 0, 1],
-    [1, 0, 1, 0, 1, 0, 1, 0 ,1, 0, 1],
-    [1, 0, 1, 0, 0, 0, 0, 0 ,1, 0, 1],
-    [1, 0, 1, 1, 1, 1, 1, 1 ,1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0 ,1, 0, 1],
-    [1, 0, 1, 0, 0, 0 ,1, 1, 1, 0, 1],
-    [1, 0, 1, 0, 0, 0, 0, 0 ,0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1]
-])
+#maze_matrix = np.array([
+#    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#    [1, 0, 0, 0, 0, 0, 0, 1 ,0, 1, 1],
+#    [1, 0, 1, 1, 1, 0, 1, 0 ,0, 0, 1],
+#    [1, 0, 0, 0, 1, 0, 1, 0 ,1, 0, 1],
+#    [1, 0, 1, 0, 1, 0, 1, 0 ,1, 0, 1],
+#    [1, 0, 1, 0, 0, 0, 0, 0 ,1, 0, 1],
+#    [1, 0, 1, 1, 1, 1, 1, 1 ,1, 0, 1],
+#    [1, 0, 0, 0, 0, 0, 0, 0 ,1, 0, 1],
+#    [1, 0, 1, 0, 0, 0 ,1, 1, 1, 0, 1],
+#    [1, 0, 1, 0, 0, 0, 0, 0 ,0, 0, 1],
+#    [1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1]
+#])
 
 # 4 Rooms
 # maze_matrix = np.array([
@@ -84,6 +89,39 @@ maze_matrix = np.array([
 #     [1, 0, 0, 0, 0, 1, 0, 0 ,0, 0, 1],
 #     [1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1]
 # ])
+
+maze_matrix = np.array([
+     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],   
+     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+     [1, 1, 7, 1, 0, 0, 0, 0, 7, 1, 7, 1, 1],
+     [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+     [1, 1, 0, 1, 7, 1, 0, 1, 7, 0, 0, 1, 1],
+     [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+     [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+     [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1],
+     [1, 1, 0, 0, 7, 1, 0, 0, 7, 1, 7, 1, 1],
+     [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+     [1, 1, 7, 1, 7, 0, 0, 0, 0, 0, 0, 1, 1],
+     [1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1],
+     [1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1]
+ ])
+
+# maze_matrix = np.array([
+#      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],   
+#      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#      [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+#      [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+#      [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+#      [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+#      [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+#      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#      [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+#      [1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1],
+#      [1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1]
+#  ])
+
 
 # 미로 설정을 위한 매개변수
 wall_size = 1  # 벽의 크기
