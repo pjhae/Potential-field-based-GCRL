@@ -5,9 +5,9 @@ from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env import VecFrameStack
 import sys
 
-date = "0615"
-trial = "B"
-steps = "50000"
+date = "0617"
+trial = "C"
+steps = "1860000"
 
 # First trial for fixed maze
 # date = "0615"
@@ -17,10 +17,11 @@ steps = "50000"
 # GOOD FOR no obstacle env
 # date = "0614"
 # trial = "C"
+
 # steps = "350000"
 
 ## Make gym environment #
-env = make_vec_env("Point-v2", n_envs=1)
+env = make_vec_env("Point-v3", n_envs=1)
 
 ## Path ##
 save_path='./save_model_'+date+'/'+trial+'/'
@@ -33,7 +34,7 @@ model = SAC.load(save_path+"Point_model_"+date+trial+"_"+steps+"_steps", device=
 
 obs = env.reset()
 while True:
-    action, _states = model.predict(obs)
+    action, _states = model.predict(obs,deterministic=True)
     obs, rewards, done, info = env.step(action)
     env.render()
 

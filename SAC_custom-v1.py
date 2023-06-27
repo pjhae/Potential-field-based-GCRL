@@ -18,8 +18,8 @@ def lin_schedule(initial_value: float, final_value: float) -> Callable[[float], 
     return func
 
 
-date = "0615"
-trial = "B"
+date = "0616"
+trial = "A"
 
 checkpoint_on_event = CheckpointCallback(
     save_freq=1,
@@ -52,7 +52,7 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
                 # We will just downsample one channel of the image by 4x4 and flatten.
                 # Assume the image is single-channel (subspace.shape[0] == 0)
                 n_input_channels = subspace.shape[0]
-                extractors[key] = nn.Sequential(nn.Conv2d(n_input_channels, 8, 4, stride=4, padding=0),
+                extractors[key] = nn.Sequential(nn.Conv2d(n_input_channels, 4, 4, stride=4, padding=0),
                 nn.ReLU(),
                 nn.MaxPool2d(2),
                 nn.Conv2d(8, 2, 3, stride=1, padding=0),

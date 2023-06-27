@@ -17,8 +17,8 @@ def lin_schedule(initial_value: float, final_value: float) -> Callable[[float], 
         return progress_remaining * (initial_value - final_value) + final_value
     return func
 
-date = "0614"
-trial = "C"
+date = "0618"
+trial = "BB"
 
 checkpoint_on_event = CheckpointCallback(
     save_freq=1,
@@ -33,7 +33,7 @@ event_callback = EveryNTimesteps(
 )
 
 
-env = make_vec_env("Point-v1", n_envs=1)
+env = make_vec_env("Point-v4", n_envs=1)
 # class EvaluateCallback(BaseCallback):
 #     def __init__(self, eval_env, eval_freq=10, n_eval_episodes=10, verbose=0):
 #         super(EvaluateCallback, self).__init__(verbose)
