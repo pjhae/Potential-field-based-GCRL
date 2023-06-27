@@ -18,7 +18,7 @@ class PointEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def __init__(
         self,
-        xml_file="point.xml",
+        xml_file="point_local.xml",
         terminate_when_unhealthy=True,
 
     ):
@@ -32,18 +32,27 @@ class PointEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         # For initialization variables
         self._terminate_when_unhealthy = terminate_when_unhealthy
-        self._goal_pos = np.array([10,10])
+        self._goal_pos = np.array([30,0])
         self._initial_pos = np.array([0,0])
+        self._map_size = 30
+
 
         # For timestep and collision check
         self.time_step = 0
         self.coll_num = 0
+        self.random_seed = 0
+        self.random_seed2 = 0
+
+        # obstacles
+        self.obs1 = np.array([5,0])
+        self.obs2 = np.array([0,-5])
+        self.obs3 = np.array([0,-5])
 
         mujoco_env.MujocoEnv.__init__(self, xml_file, 5)
 
     @property
     def is_healthy(self):
-        is_healthy = (np.linalg.norm(self._goal_pos - np.array(self.get_body_com("torso")[:2])) > 1)
+        is_healthy = (np.linalg.norm(self._goal_pos - np.array(self.get_body_com("torso")[:2])) > 3.5)
         return is_healthy
 
     @property
@@ -79,30 +88,32 @@ class PointEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         xy_position_after = self.get_body_com("torso")[:2].copy()
         
         # Calculate distance reward
-        dist_reward =  np.linalg.norm(self._goal_pos - np.array([xy_position_before]))  - np.linalg.norm(self._goal_pos - np.array([xy_position_after]))   
-
-        # # Absorbing reward
-        # if np.linalg.norm(self._goal_pos - np.array(self.get_body_com("torso")[:2])) < 15:
-        #     dist_reward = 3*(np.linalg.norm(self._goal_pos - np.array([xy_position_before]))  - np.linalg.norm(self._goal_pos - np.array([xy_position_after])))   
-
-        # Goal in reward   
-        if np.linalg.norm(self._goal_pos - np.array(self.get_body_com("torso")[:2])) < 1:
-            dist_reward = 10000
+        dist_reward =   np.linalg.norm(self._goal_pos - np.array([xy_position_before]))  - np.linalg.norm(self._goal_pos - np.array([xy_position_after]))   
+        if np.linalg.norm(self._goal_pos - np.array(self.get_body_com("torso")[:2])) < 1.2:
+            dist_reward = 500000
             print("!!!!Goal in!!!!", "Init pos : ", self._initial_pos, "Goal pos : ", self._goal_pos)
+
+        # Absorbing reward
+        if np.linalg.norm(self._goal_pos - np.array(self.get_body_com("torso")[:2])) < 5:
+            dist_reward = 2*(np.linalg.norm(self._goal_pos - np.array([xy_position_before]))  - np.linalg.norm(self._goal_pos - np.array([xy_position_after])))   
+
 
         # Calculate collision reward
         col_reward = 0
         for i in range(self.sim.data.ncon):
             sim_contact = self.sim.data.contact[i]
-            # print("geom1 : " ,str(self.sim.model.geom_id2name(sim_contact.geom1)))
-            # print("geom2 : " ,str(self.sim.model.geom_id2name(sim_contact.geom2)))
-        
+
             if (str(self.sim.model.geom_id2name(sim_contact.geom2)) == "pointbody" or "pointarrow"):
                 if str(self.sim.model.geom_id2name(sim_contact.geom1)) != "floor":
                     self.coll_num += 1
-                    col_reward = -2.5
+                    col_reward = -3
                     # print("Collision! : Reward -= 40")
                     break
+        
+        if (np.linalg.norm(self.obs1 - np.array(self.get_body_com("torso")[:2])) < 5) \
+            or (np.linalg.norm(self.obs2 - np.array(self.get_body_com("torso")[:2])) < 7.5) \
+            or (np.linalg.norm(self.obs3 - np.array(self.get_body_com("torso")[:2])) < 5) :
+            col_reward -= 0.025
 
         reward = dist_reward + col_reward
 
@@ -114,72 +125,43 @@ class PointEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             "distance_from_origin": np.linalg.norm(xy_position_after, ord=2),
 
         }
+        
 
         return observation, reward, done, info
 
     def _get_obs(self):
-        position = self.sim.data.qpos.flat.copy()
         velocity = self.sim.data.qvel.flat.copy()
-
-        ###########################For image observation###########################
-        # # 1. For Training
-        # camera_data = np.array(self.render("rgb_array", 48, 48, 0))
-        # CHW = np.transpose(camera_data, (2, 0, 1))
-        # # # print(camera_data, CHW)
-
-        # # # If you wanna check the input image
-        # if self.time_step % 20 == 0:
-        #   plt.imshow(camera_data)
-        #   plt.show()
-
-        # 2. For rendering check
-        data = self._get_viewer("rgb_array").read_pixels(48, 48, depth=False)
-        CHW = np.transpose(data[::-1, :, :], (2, 0, 1))
-
-        # if self.time_step % 20 == 0:
-        #     plt.imshow(data[::-1, :, :])
-        #     plt.show()
-
-        obs_dct = {}
-        obs_dct['image'] = np.array(CHW) / 255.0
-        obs_dct['vector'] = np.concatenate([self._goal_pos - self.sim.data.qpos[:2] ,  [np.cos(self.sim.data.qpos[2]) , np.sin(self.sim.data.qpos[2]) ] , velocity  ])
-        #########################################################################
-
-        # # For vector observations
-        # observations = np.concatenate([self._goal_pos - self.sim.data.qpos[:2] ,  [np.cos(self.sim.data.qpos[2]) , np.sin(self.sim.data.qpos[2]) ] , velocity  ])
-        # return observations
-        return obs_dct
+        observations = np.concatenate([self._goal_pos - self.sim.data.qpos[:2] ,  self.obs1  - self.sim.data.qpos[:2]  , self.obs2 - self.sim.data.qpos[:2], self.obs3 - self.sim.data.qpos[:2]     ,  [np.cos(self.sim.data.qpos[2]) , np.sin(self.sim.data.qpos[2]) ] , velocity  ])
+        return observations
 
 
     def reset_model(self):
-        print("Number of collision :", self.coll_num)
         self.time_step = 0
         self.coll_num = 0
 
-        qpos = self.init_qpos + self.np_random.uniform(
-            size=self.sim.model.nq, low=-0.1, high=0.1)
-        
-        # Agent_position_setting
-        agent_pos_candidate = np.array([[0,0]]) 
-        idx = np.random.randint(1)
-        self._initial_pos = np.array(agent_pos_candidate[idx][:])
-        qpos[:2] = self._initial_pos
+        qpos = self.init_qpos
         qvel = self.init_qvel + self.np_random.randn(self.sim.model.nv) * 0.1
 
+        agent_pos_candidate = np.array([[20,0], [-20,0 ], [-20,0],  [-20,0], [-20,0], [-20,0], [0,20], [0,20], [0,20], [0,-20], [0,-20], [0,-20], [0,-20], [0, 20]]) 
+        goal_pos_candidate  = np.array([[0,20], [0,-20], [20,0], [ 20,0], [ 0,20], [ 0,-20],[0,-20],[20,0],[-20,0], [0,20], [20,0] , [-20,0] , [0, 20], [0,-20] ])
+
+        # Agent_position_setting
+        idx = np.random.randint(14)
+        self._initial_pos = np.array(agent_pos_candidate[idx][:])
+        qpos[:2] = self._initial_pos + self.np_random.uniform(size=2, low=-1, high=1)
         self.set_state(qpos, qvel)
+
+
+        self._goal_pos = np.array(goal_pos_candidate[idx][:]) + self.np_random.uniform(size=2, low=-1, high=1)
+        box_id = self.sim.model.geom_name2id('Goal')
+        self.sim.model.geom_pos[box_id][0:2] = self._goal_pos 
+
+        print("Initial pos : ",self._initial_pos, "Goal pos :", np.array(goal_pos_candidate[idx][:]) )
 
         observation = self._get_obs()
 
-        # Update the position of the goal
-        box_id = self.sim.model.geom_name2id('Goal')
-
-        # Goal_position_setting
-        goal_pos_candidate = np.array([[30,-40],[20,50],[50, -20],[-40, -10]])
-        idx = np.random.randint(4)
-        self._goal_pos = np.array(goal_pos_candidate[idx][:])
-        print("This goal is : ", self._goal_pos)
-        self.sim.model.geom_pos[box_id][0:2] = self._goal_pos 
         return observation
+
 
     def viewer_setup(self):
         for key, value in DEFAULT_CAMERA_CONFIG.items():

@@ -130,8 +130,8 @@ class PointEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         box_id = self.sim.model.geom_name2id('Goal')
 
         # option1
-        goal_pos_candidate = np.array([[20,20], [-8,-8], [-8,8], [8,-8]])
-        idx = np.random.randint(1)
+        goal_pos_candidate = np.array([[8,8], [-8,-8], [-8,8], [8,-8]])
+        idx = np.random.randint(4)
         self._goal_pos = np.array(goal_pos_candidate[idx][:])
         
         # option2
